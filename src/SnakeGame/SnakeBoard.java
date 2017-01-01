@@ -20,49 +20,36 @@ public class SnakeBoard extends JPanel implements ActionListener {
     private final int B_WIDTH = 30;
     private final int B_HEIGHT = 30;
     private final int IMG_SIZE = 10;// in px
+    private final int MARGIN_SIZE = 10;// in px
     private final int DELAY = 200;
-    private enum Direction {up, down, left, right};
+    private final int MAX_BODY_LEN = 50;
     
-    Direction m_currD;
+    private enum Direction {up, down, left, right};
     
     private Timer m_timer;
     private boolean m_paused;
-    
-    private Image m_foodImg;
-    private Image m_headImg;
-    private Image m_bodyImg;
-    private Image m_spaceImg;
-    
+	private boolean m_showGrid = true;
+
     private int m_bodyLen;
     
     // 0 - space, 1 - snake, 2 - food
     byte [][] m_gameBoard;
     Point m_head;
     Queue <Point> m_body;
+    Direction m_currD;
     
     public SnakeBoard() {
         addKeyListener(new GameKeyAdapter());
-        setBackground(Color.black);
+        setBackground(Color.white);
         setFocusable(true);
 
-        setPreferredSize(new Dimension(B_WIDTH * IMG_SIZE, B_HEIGHT * IMG_SIZE));
-        loadImgs();
+        setPreferredSize(new Dimension(B_WIDTH * IMG_SIZE + 2 * MARGIN_SIZE, 
+        		                       B_HEIGHT * IMG_SIZE + 2 * MARGIN_SIZE));
         initGame();
         m_timer = new Timer(DELAY, this);
         m_timer.start();
     }
-    
-    private void loadImgs() {
-        ImageIcon iif = new ImageIcon("src/SnakeGame/img/green_10px.jpg");
-        m_foodImg = iif.getImage();
-        ImageIcon iih = new ImageIcon("src/SnakeGame/img/black_10px.jpg");
-        m_headImg = iih.getImage();
-        ImageIcon iib = new ImageIcon("src/SnakeGame/img/grey_10px.jpg");
-        m_bodyImg = iib.getImage();
-        ImageIcon iis = new ImageIcon("src/SnakeGame/img/white_10px.jpg");
-        m_spaceImg = iis.getImage();
-        //System.out.println(new File(iis.toString()).exists());
-    }
+
     
     private void initGame() {
     	//m_timer = new Timer(DELAY, this);
@@ -87,22 +74,37 @@ public class SnakeBoard extends JPanel implements ActionListener {
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        //System.out.println("randered");
+        
+        for (int i = 0; i <= B_HEIGHT*IMG_SIZE; i += 10) {
+            g.drawLine(MARGIN_SIZE, i + MARGIN_SIZE, B_WIDTH*IMG_SIZE + MARGIN_SIZE, i + MARGIN_SIZE);
+        }
+        for (int i = 0; i <= B_WIDTH*IMG_SIZE; i += 10) {
+            g.drawLine(i + MARGIN_SIZE, MARGIN_SIZE, i + MARGIN_SIZE, B_HEIGHT*IMG_SIZE + MARGIN_SIZE);
+        }
+        
         for (int i = 0; i < B_HEIGHT; ++ i) {
         	for (int j = 0; j < B_WIDTH; ++ j) {
         		if (m_gameBoard[i][j] == 1) {
         			if (i == m_head.y && j == m_head.x)
-        				g.drawImage(m_headImg, j * IMG_SIZE, i * IMG_SIZE, this);
+        				fillCell(g, j, i, Color.black);
         			else 
-        				g.drawImage(m_bodyImg, j * IMG_SIZE, i * IMG_SIZE, this);
+        				fillCell(g, j, i, Color.GRAY);
+        			
         		} else if (m_gameBoard[i][j] == 2) {
-        			g.drawImage(m_foodImg, j * IMG_SIZE, i * IMG_SIZE, this);
+        			fillCell(g, j, i, Color.green);
         		} else {
-        			g.drawImage(m_spaceImg, j * IMG_SIZE, i * IMG_SIZE, this);
+        			fillCell(g, j, i, Color.white);
         		}
         	}
         }
         Toolkit.getDefaultToolkit().sync();
+        
+    }
+    private void fillCell(Graphics g, int x, int y, Color c) {
+    	g.setColor(c);
+    	int t = 0;
+    	if (m_showGrid) t = 1;
+        g.fillRect(x * IMG_SIZE + MARGIN_SIZE + t, y * IMG_SIZE + MARGIN_SIZE + t, 10 - t, 10 - t);
     }
 
 	
@@ -118,8 +120,15 @@ public class SnakeBoard extends JPanel implements ActionListener {
     private void checkFood() {
         if (m_gameBoard[m_head.y][m_head.x] == 2) {
             m_bodyLen++;
-            m_gameBoard[m_head.y][m_head.x] = 0;
-            locateFood();
+            if (m_bodyLen >= MAX_BODY_LEN) {
+            	m_paused = true;
+            	System.out.println("MAX_LEN: " + MAX_BODY_LEN + " reached!");
+            	//initGame();
+            } else {
+            	m_gameBoard[m_head.y][m_head.x] = 0;
+            	locateFood();
+            }
+            
         }
     }
     private boolean willCollide() {
@@ -170,6 +179,8 @@ public class SnakeBoard extends JPanel implements ActionListener {
             	m_paused = false;
             else if (key == KeyEvent.VK_ESCAPE)
             	m_paused = true;
+            else if (key == KeyEvent.VK_G)
+            	m_showGrid = !m_showGrid;
             else {
 	            if ((key == KeyEvent.VK_LEFT) && (m_currD != Direction.right))
 	            	m_currD = Direction.left;

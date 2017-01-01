@@ -1,7 +1,7 @@
 package SnakeGame;
 import java.awt.EventQueue;
 import javax.swing.JFrame;
-
+// paint directly : http://stackoverflow.com/questions/15870608/creating-a-draw-rectangle-filled-with-black-color-function-in-java-for-a-grid
 public class SnakeGame extends JFrame {
 	public SnakeGame() {
         super.add(new SnakeBoard());
