@@ -2,7 +2,6 @@ package SnakeGame;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Image;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -11,34 +10,33 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.awt.Point;
 
-import javax.swing.ImageIcon;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+import static SnakeGame.Constants.*;
+
 public class SnakeBoard extends JPanel implements ActionListener {
-    private final int B_WIDTH = 30;
-    private final int B_HEIGHT = 30;
-    private final int IMG_SIZE = 10;// in px
-    private final int MARGIN_SIZE = 10;// in px
-    private final int DELAY = 200;
-    private final int MAX_BODY_LEN = 50;
-    
-    private enum Direction {up, down, left, right};
     
     private Timer m_timer;
     private boolean m_paused;
 	private boolean m_showGrid = true;
+	private SnakePlayer m_player;
 
     private int m_bodyLen;
     
-    // 0 - space, 1 - snake, 2 - food
+    // 0 - space, 1 - snake, 2 - food, 4 - path
     byte [][] m_gameBoard;
-    Point m_head;
+    Point m_head, m_food;
     Queue <Point> m_body;
     Direction m_currD;
     
+    private boolean m_aiON;
+    
     public SnakeBoard() {
+    	m_player = new SnakePlayer(B_WIDTH, B_HEIGHT);
+    			
         addKeyListener(new GameKeyAdapter());
         setBackground(Color.white);
         setFocusable(true);
@@ -56,12 +54,13 @@ public class SnakeBoard extends JPanel implements ActionListener {
         //m_timer.start();
         
     	m_paused = true;
+    	m_aiON = true;
     	m_body = new LinkedList<Point>(); 
     	m_bodyLen = 3;
     	m_gameBoard = new byte [B_HEIGHT][B_WIDTH];
-    	m_gameBoard[B_HEIGHT/2][B_WIDTH/2] = 1;
-    	m_gameBoard[B_HEIGHT/2][B_WIDTH/2 - 1] = 1;
-    	m_gameBoard[B_HEIGHT/2][B_WIDTH/2 - 2] = 1;
+    	m_gameBoard[B_HEIGHT/2][B_WIDTH/2] |= SNAKE;
+    	m_gameBoard[B_HEIGHT/2][B_WIDTH/2 - 1] |= SNAKE;
+    	m_gameBoard[B_HEIGHT/2][B_WIDTH/2 - 2] |= SNAKE;
     	m_body.offer(new Point(B_WIDTH/2 - 2, B_HEIGHT/2));
     	m_body.offer(new Point(B_WIDTH/2 - 1, B_HEIGHT/2));
     	m_body.offer(new Point(B_WIDTH/2, B_HEIGHT/2));
@@ -75,23 +74,27 @@ public class SnakeBoard extends JPanel implements ActionListener {
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         
-        for (int i = 0; i <= B_HEIGHT*IMG_SIZE; i += 10) {
-            g.drawLine(MARGIN_SIZE, i + MARGIN_SIZE, B_WIDTH*IMG_SIZE + MARGIN_SIZE, i + MARGIN_SIZE);
-        }
-        for (int i = 0; i <= B_WIDTH*IMG_SIZE; i += 10) {
-            g.drawLine(i + MARGIN_SIZE, MARGIN_SIZE, i + MARGIN_SIZE, B_HEIGHT*IMG_SIZE + MARGIN_SIZE);
+        if (m_showGrid) {
+	        for (int i = 0; i <= B_HEIGHT*IMG_SIZE; i += 10) {
+	            g.drawLine(MARGIN_SIZE, i + MARGIN_SIZE, B_WIDTH*IMG_SIZE + MARGIN_SIZE, i + MARGIN_SIZE);
+	        }
+	        for (int i = 0; i <= B_WIDTH*IMG_SIZE; i += 10) {
+	            g.drawLine(i + MARGIN_SIZE, MARGIN_SIZE, i + MARGIN_SIZE, B_HEIGHT*IMG_SIZE + MARGIN_SIZE);
+	        }
         }
         
         for (int i = 0; i < B_HEIGHT; ++ i) {
         	for (int j = 0; j < B_WIDTH; ++ j) {
-        		if (m_gameBoard[i][j] == 1) {
+        		if ((m_gameBoard[i][j] & SNAKE) > 0) {
         			if (i == m_head.y && j == m_head.x)
         				fillCell(g, j, i, Color.black);
         			else 
         				fillCell(g, j, i, Color.GRAY);
         			
-        		} else if (m_gameBoard[i][j] == 2) {
+        		} else if ((m_gameBoard[i][j] & FOOD) > 0) {
         			fillCell(g, j, i, Color.green);
+        		} else if ((m_gameBoard[i][j] & PATH) > 0) {
+        			fillCell(g, j, i, Color.yellow);
         		} else {
         			fillCell(g, j, i, Color.white);
         		}
@@ -113,52 +116,59 @@ public class SnakeBoard extends JPanel implements ActionListener {
 		do {
 			t_x = (int) (Math.random() * B_WIDTH);
 			t_y = (int) (Math.random() * B_HEIGHT);
-		} while (t_x >= B_WIDTH || t_y >= B_HEIGHT || m_gameBoard[t_y][t_x] != 0);
-		m_gameBoard[t_y][t_x] = 2;
+		} while (t_x >= B_WIDTH || t_y >= B_HEIGHT || 
+				     (m_gameBoard[t_y][t_x] != 0 && (m_gameBoard[t_y][t_x] & PATH) == 0));
+		m_food = new Point(t_x, t_y);
+		m_gameBoard[t_y][t_x] |= FOOD;
 	}
 	
-    private void checkFood() {
-        if (m_gameBoard[m_head.y][m_head.x] == 2) {
+    private boolean checkFood() {
+        if ((m_gameBoard[m_head.y][m_head.x] & FOOD) > 0) {
             m_bodyLen++;
             if (m_bodyLen >= MAX_BODY_LEN) {
             	m_paused = true;
             	System.out.println("MAX_LEN: " + MAX_BODY_LEN + " reached!");
             	//initGame();
             } else {
-            	m_gameBoard[m_head.y][m_head.x] = 0;
+            	m_gameBoard[m_head.y][m_head.x] &= ~FOOD;
             	locateFood();
             }
-            
+            return true;
         }
+        return false;
     }
     private boolean willCollide() {
     	if (m_head.y < 0 || m_head.y >= B_HEIGHT || m_head.x < 0 || m_head.x >= B_WIDTH) {
-    		System.out.println("Collision1!");
+    		System.out.println("[Info] SnakeBoard.willCollide(): Collision (1)!");
     		return true;
     	}
-    	if (m_gameBoard[m_head.y][m_head.x] == 1)
-    		System.out.println("Collision2!");
-    	return m_gameBoard[m_head.y][m_head.x] == 1;
+    	
+    	if ((m_gameBoard[m_head.y][m_head.x] & SNAKE) > 0)
+    		System.out.println("[Info] SnakeBoard.willCollide(): Collision (2)!");
+    	return (m_gameBoard[m_head.y][m_head.x] & SNAKE) > 0;
     }
     private void move() {
+    	
         if (m_currD == Direction.right) m_head.x ++;
         else if (m_currD == Direction.left) m_head.x--;
         else if (m_currD == Direction.up) m_head.y ++;
         else if (m_currD == Direction.down) m_head.y --;
         
         if (willCollide()) {
-        	System.out.println("Collision!");
-        	initGame();
+        	m_paused = true;
+        	//initGame();
         } else {
         	checkFood();
+	        
         	if (m_bodyLen <= m_body.size()) {
             	Point tail = m_body.poll();
-            	m_gameBoard[tail.y][tail.x] = 0;
+            	m_gameBoard[tail.y][tail.x] &= ~SNAKE;
             }
         	m_body.offer(new Point(m_head.x, m_head.y));
-        	m_gameBoard[m_head.y][m_head.x] = 1;
+        	m_gameBoard[m_head.y][m_head.x] |= SNAKE;
         }
     }
+    
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
@@ -166,6 +176,15 @@ public class SnakeBoard extends JPanel implements ActionListener {
 		//System.out.println(m_paused);
 		if (!m_paused) {
             move();
+            if (m_aiON) {
+	            m_player.loadInBoard(m_gameBoard, m_head, m_food);
+	            m_player.findShortestPath();
+	            m_gameBoard = m_player.getBoardWithPath();
+	            Direction sugg = m_player.getDirection(m_currD);
+	            if (sugg != Direction.none) {
+	            	m_currD = sugg;
+	            }
+            }
         }
         repaint();
 	}
@@ -181,6 +200,10 @@ public class SnakeBoard extends JPanel implements ActionListener {
             	m_paused = true;
             else if (key == KeyEvent.VK_G)
             	m_showGrid = !m_showGrid;
+            else if (key == KeyEvent.VK_R)
+            	initGame();
+            else if (key == KeyEvent.VK_O)
+            	m_aiON = !m_aiON;
             else {
 	            if ((key == KeyEvent.VK_LEFT) && (m_currD != Direction.right))
 	            	m_currD = Direction.left;
@@ -196,4 +219,17 @@ public class SnakeBoard extends JPanel implements ActionListener {
             }
         }
     }
+	
+	private void printMap (byte [][] map) {
+		System.out.println(" ");
+		for (int i = 0; i < map.length; ++ i) {
+			System.out.println(" ");
+			System.out.println(" ");
+			for (int j = 0; j < map[0].length; ++ j) {
+				if (map[i][j] == Integer.MAX_VALUE) System.out.print("            *");
+				else System.out.print("           " + map[i][j]);
+			}
+		}
+		System.out.println(" ");
+	}
 }
