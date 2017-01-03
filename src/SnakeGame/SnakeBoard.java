@@ -115,7 +115,7 @@ public class SnakeBoard extends JPanel implements ActionListener {
 		do {
 			t_x = (int) (Math.random() * B_WIDTH);
 			t_y = (int) (Math.random() * B_HEIGHT);
-		} while (t_x >= B_WIDTH || t_y >= B_HEIGHT || 
+		} while (t_x >= B_WIDTH || t_y >= B_HEIGHT || (t_x == m_head.x && t_y == m_head.y) ||
 				     (m_gameBoard[t_y][t_x] != 0 && (m_gameBoard[t_y][t_x] & PATH) == 0));
 		m_food = new Point(t_x, t_y);
 		m_gameBoard[t_y][t_x] |= FOOD;
@@ -137,7 +137,6 @@ public class SnakeBoard extends JPanel implements ActionListener {
     }
     private boolean willCollide() {
     	if (m_head.y < 0 || m_head.y >= B_HEIGHT || m_head.x < 0 || m_head.x >= B_WIDTH) {
-    		System.out.println(m_head.y + " " + m_head.x + " " + B_HEIGHT + " " + B_WIDTH);
     		System.out.println("[Info] SnakeBoard.willCollide(): Collision (1)!");
     		return true;
     	}
@@ -176,9 +175,8 @@ public class SnakeBoard extends JPanel implements ActionListener {
             move();
             if (m_aiON) {
             	if (m_player.needReload()) {
-            		m_player.loadInBoard(m_gameBoard, m_head, m_food);
-            		m_player.findShortestPath();
-            		//m_player.findlongestPath();
+            		m_player.loadInBoard(m_gameBoard, m_body, m_food);
+            		m_player.findPath();
             		m_gameBoard = m_player.getBoardWithPath();
             	}
 	            Direction sugg = m_player.getDirection();

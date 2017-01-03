@@ -20,9 +20,11 @@ public class SnakePlayer {
 	private byte[][] m_gameBoard;
 	private Point m_head;
 	private Point m_food;
+	private Queue<Point> m_snake;
 	
-	private int[][] m_map;
 	private Stack <Direction> m_path;
+	
+	private byte m_pathCnter;
 	
 	public SnakePlayer(int width, int height) {
 		m_width = width;
@@ -34,11 +36,12 @@ public class SnakePlayer {
 		return m_path.isEmpty();
 	}
 	
-	public void loadInBoard(byte [][] currGameBoard, Point head, Point food) {
+	public void loadInBoard(byte [][] currGameBoard, Queue<Point> snake, Point food) {
 		m_gameBoard = currGameBoard;
-		m_head = head;
+		m_snake = snake;
+		m_head = ((LinkedList<Point>) snake).get(snake.size() - 1);
 		m_food = food;
-		clearPath(false);
+		clearPath(CLEAR_ALL);
 		m_path.clear();
 	}
 	
@@ -47,136 +50,233 @@ public class SnakePlayer {
 	}
 	
 	public Direction getDirection() {
-		//System.out.println(m_path.peek());
-		//printDirStack(m_path);
-		clearPath(true);
+		clearPath(CLEAR_OVERLAP_ONLY);
 		if (m_path.isEmpty())
 			return Direction.none;
 		else 
 			return m_path.pop();
 	}
 	
-	// bfs
-	public void findShortestPath() {
-		int x0 = m_head.x, y0 = m_head.y;
-		m_map = new int[m_height][m_width];
-		boolean [][] seen = new boolean[m_height][m_width];
-		for (int i = 0; i < m_height; ++ i) {
-			Arrays.fill(m_map[i], Integer.MAX_VALUE);
+	public void findPath() {
+		Point [][] vecMapS = findShortestPath(m_head, m_food, m_gameBoard);
+		
+		Stack <Direction> shortPath = constructPath(m_head, m_food, vecMapS, m_gameBoard, HIDE_PATH);
+		if (!shortPath.isEmpty()) {
+			byte [][] tmpGB =  copy2dArr(m_gameBoard);
+			Point tmp_food = new Point();
+			moveAlongPath(m_snake, m_food, tmpGB, shortPath, tmp_food);
+			findLongestPath(m_food, tmp_food, tmpGB, NO_COLLISION);
+			if (m_pathCnter > 0) {
+				constructPath(m_head, m_food, vecMapS, m_gameBoard, SHOW_PATH);
+				m_path = shortPath;
+				return;
+			}
 		}
-		if (!pntInRange(m_map, y0, x0)) return;
-		m_map[y0][x0] = 0;
+		
+		Point [][] vecMapL = findLongestPath(m_head, m_food, m_gameBoard, NO_COLLISION);
+		Stack <Direction> longPath = constructPath(m_head, m_food, vecMapL, m_gameBoard, HIDE_PATH);
+		if (m_pathCnter > 0) {
+			constructPath(m_head, m_food, vecMapL, m_gameBoard, SHOW_PATH);
+			m_path = longPath;
+			return;
+		}
+		for (int i = 0; i < 10; ++ i) System.out.println("GAME OVER");
+		Point [][] vecMapTry = findLongestPath(m_head, m_food, m_gameBoard, WITH_COLLISION);
+		m_path = constructPath(m_head, m_food, vecMapTry, m_gameBoard, HIDE_PATH);
+	}
+	
+	private void moveAlongPath(Queue<Point> snake, Point food, byte[][] gameBoard, Stack <Direction> path, Point foodLoc) {
+		int snakeLen = snake.size();
+		Point p = new Point(food);
+		List <Direction> pathList = path;
+		List <Point> snakeList = (List<Point>) snake;
+		for (int i = 0; i < snakeLen; ++ i) {
+			
+			gameBoard[p.y][p.x] = PLACE_HOLDER;
+			if (i < path.size()) {
+				
+				Direction prev = pathList.get(i);
+				if (prev == Direction.up)         p.y --;
+				else if (prev == Direction.down)  p.y ++;  
+				else if (prev == Direction.right)  p.x --; 
+				else if (prev == Direction.left) p.x ++;  
+				else {
+					System.out.println("[Error] SnakePlayer.moveAlongPath(): Unexpected value!");
+					return;
+				}
+			} else {
+				
+				p = snakeList.get(snakeList.size() - 1 - (i - pathList.size()));
+			}
+		}
+		for (int i = 0; i < m_height; ++ i)
+        	for (int j = 0; j < m_width; ++ j)
+        		gameBoard[i][j] = (byte) ((gameBoard[i][j] == PLACE_HOLDER) ? 1 : 0);
+		gameBoard[p.y][p.x] = FOOD;
+		foodLoc = new Point(p);
+	}
+	
+	// bfs
+	public Point [][] findShortestPath(Point head, Point food, byte [][] gameBoard) {
+		m_pathCnter = 0;
+		
+		int x0 = head.x, y0 = head.y;
+		int d = 0;
 		
 		Queue<Point> q = new LinkedList<>();
-		q.offer(new Point(m_head));
-		int d = 0;
-		boolean found = false;
 		
+		int [][] map = new int[m_height][m_width];
+		boolean [][] seen = new boolean[m_height][m_width];
 		Point [][] parent = new Point[m_height][m_width];
 		
-		while (!q.isEmpty() && !found) {
+		for (int i = 0; i < m_height; ++ i) {
+			Arrays.fill(map[i], Integer.MAX_VALUE);
+		}
+		if (!pntInRange(map, y0, x0)) {
+			System.out.println("[Error] SnakePlayer.findShortestPath(): idx of head is invalid!");
+			return null;
+		}
+		map[y0][x0] = 0;
+		q.offer(head);
+		
+		while (!q.isEmpty() && m_pathCnter == 0) {
 			int size = q.size();
 			for (int i = 0; i < size; ++ i) {
 				Point currP = q.poll();
 				int i0 = currP.y;
 				int j0 = currP.x;
-				m_map[i0][j0] = d;
+				map[i0][j0] = d;
 				
-				if (validP(m_map, seen, i0 + 1, j0)) {
-					found |= processP(m_map, seen, q, i0 + 1, j0, d);
+				if (validP(map, seen, i0 + 1, j0, gameBoard, NO_COLLISION)) {
+					m_pathCnter += processP(food, map, seen, q, i0 + 1, j0, d);
 					parent[i0 + 1][j0] = currP;
 				}
-				if (validP(m_map, seen, i0 - 1, j0)) {
-					found |= processP(m_map, seen, q, i0 - 1, j0, d);
+				if (validP(map, seen, i0 - 1, j0, gameBoard, NO_COLLISION)) {
+					m_pathCnter += processP(food, map, seen, q, i0 - 1, j0, d);
 					parent[i0 - 1][j0] = currP;
 				}
-				if (validP(m_map, seen, i0, j0 + 1)) {
-					found |= processP(m_map, seen, q, i0, j0 + 1, d);
+				if (validP(map, seen, i0, j0 + 1, gameBoard, NO_COLLISION)) {
+					m_pathCnter += processP(food, map, seen, q, i0, j0 + 1, d);
 					parent[i0][j0 + 1] = currP;
 				}
-				if (validP(m_map, seen, i0, j0 - 1)) {
-					found |= processP(m_map, seen, q, i0, j0 - 1, d);
+				if (validP(map, seen, i0, j0 - 1, gameBoard, NO_COLLISION)) {
+					m_pathCnter += processP(food, map, seen, q, i0, j0 - 1, d);
 					parent[i0][j0 - 1] = currP;
 				}
 					
 			}
 			++ d;
 		}
-		if (!found)
-			System.out.println("[Error] SnakePlayer.findShortestPath() Counld not find the path!");
-		else
-			constructPath(m_head, m_food, parent);
-			
+		if (m_pathCnter == 0) {
+			System.out.println("[Error] SnakePlayer.findShortestPath(): Counld not find the path!");
+			return null;
+		}
+		return parent;
 	}
 
 	// dfs
-	public void findlongestPath() {
-		int x0 = m_head.x, y0 = m_head.y;
-		int x1 = m_food.x, y1 = m_food.y;
-		m_map = new int[m_height][m_width];
+	public Point [][] findLongestPath(Point head, Point food, byte [][] gameBoard, boolean enCollision) {
+		m_pathCnter = 0;
+		
+		int x0 = head.x, y0 = head.y;
+		int x1 = food.x, y1 = food.y;
+		int [][] map = new int[m_height][m_width];
 		boolean [][] seen = new boolean[m_height][m_width];
 		Point [][] parent = new Point[m_height][m_width];
+		
 		for (int i = 0; i < m_height; ++ i) {
-			Arrays.fill(m_map[i], Integer.MAX_VALUE);
+			Arrays.fill(map[i], Integer.MAX_VALUE);
 		}
-		if (!pntInRange(m_map, y0, x0)) return;
-		m_map[y0][x0] = getEstDist(x0, y0, x1, y1);
-		dfs(new Point(m_head), new Point(m_head), new Point(m_food), seen, parent);
+		if (!pntInRange(map, y0, x0)) {
+			System.out.println("[Error] SnakePlayer.findLongestPath(): idx of head is invalid!");
+			return null;
+		}
+		map[y0][x0] = getEstDist(x0, y0, x1, y1);
+		
+		
+		dfs(head, head, food, gameBoard, map, seen, parent, enCollision);
+		if (m_pathCnter == 0) {
+			System.out.println("[Error] SnakePlayer.findLongestPath(): Counld not find the path!");
+			return null;
+		}
+		return parent;
 	}
 	
-	private void dfs(Point origin, Point from, Point to, boolean [][] seen, Point [][] parent) {
-		if (!m_path.isEmpty()) return;
+	private void dfs(Point origin, Point from, Point to, byte[][] gb, int [][] map, boolean [][] seen, Point [][] parent, boolean enCollision) {
+		if (m_pathCnter > 0) return;
 		
 		seen[from.y][from.x] = true;
 		if (from.x == to.x && from.y == to.y) {
-			constructPath(origin, to, parent);
+			m_pathCnter ++;
 		} else {
-			List<Point> adjPnts = getAdjPnts(from, seen);
+			List<Point> adjPnts = getAdjPnts(from, seen, map, gb, enCollision);
 			if (adjPnts.isEmpty()) return;
 			for (Point p : adjPnts) {
-				m_map[p.y][p.x] = Math.min(m_map[p.y][p.x], getEstDist(p.x, p.y, to.x, to.y));
+				map[p.y][p.x] = Math.min(map[p.y][p.x], getEstDist(p.x, p.y, to.x, to.y));
 			}
 			Collections.sort(adjPnts, (a, b) -> {
-				return m_map[b.y][b.x] - m_map[a.y][a.x];
+				return map[b.y][b.x] - map[a.y][a.x];
 			});
 
 			for (Point p : adjPnts) {
 				if (!seen[p.y][p.x]) {
 					parent[p.y][p.x] = from;
-					dfs(origin, p, to, seen, parent);
+					dfs(origin, p, to, gb, map, seen, parent, enCollision);
 				}
 			}
 		}
 	}
-	private void constructPath(Point from, Point to, Point [][] parent) {
+
+	private Stack<Direction> constructPath(Point from, Point to, Point[][] parent, byte [][] gameBoard, boolean showPath) {
+		Stack<Direction> res_path = new Stack<Direction>();
+		if (parent == null) {
+			System.out.println("[Error] SnakePlayer: constructPath() Parent vector field is null");
+			return res_path;
+		}
 		Point p2 = to;
-		Point tmp;
-		 do {
-			tmp = parent[p2.y][p2.x];
-			
+		Point tmp = null;
+		
+		do {
+			if (p2 != null)
+				tmp = parent[p2.y][p2.x];
 			if (p2 == null || tmp == null || getEstDist(tmp, p2) != 1) {
-				System.out.println("[Error] SnakePlayer: constructPath() Counld not find path!");
+				if (p2 == null)
+					System.out.println("[Error] SnakePlayer: constructPath() No Path Found p2 is null");
+				if (tmp == null)
+					System.out.println("[Error] SnakePlayer: constructPath() No Path Found tmp is null");
+				if (getEstDist(tmp, p2) != 1)
+					System.out.println("[Error] SnakePlayer: constructPath() No Path Found tmp is not adj to p2");
 				break;
 			}
-			
+
 			Direction tmpD = Direction.none;
-			if (tmp.x - p2.x == 1) tmpD = Direction.left;
-			if (tmp.x - p2.x == -1) tmpD = Direction.right;
-			if (tmp.y - p2.y == 1) tmpD = Direction.down;
-			if (tmp.y - p2.y == -1) tmpD = Direction.up;
-			
-			m_path.push(tmpD);
+			if (tmp.x - p2.x == 1)
+				tmpD = Direction.left;
+			if (tmp.x - p2.x == -1)
+				tmpD = Direction.right;
+			if (tmp.y - p2.y == 1)
+				tmpD = Direction.down;
+			if (tmp.y - p2.y == -1)
+				tmpD = Direction.up;
+
+			res_path.push(tmpD);
 			p2 = tmp;
-			m_gameBoard[p2.y][p2.x] |= LPATH;
+			if (showPath)
+				gameBoard[p2.y][p2.x] |= PATH;
 		} while (p2.y != from.y || p2.x != from.x);
+		return res_path;
 	}
 
-	private List<Point> getAdjPnts(Point p, boolean [][] seen) {
+	private List<Point> getAdjPnts(Point p, boolean [][] seen, int [][] map, byte [][] gb, boolean enCollision) {
 		List<Point> res = new ArrayList<Point>();
-		if (validP(m_map, seen, p.y + 1, p.x)) res.add(new Point(p.x, p.y + 1));
-		if (validP(m_map, seen, p.y - 1, p.x)) res.add(new Point(p.x, p.y - 1));
-		if (validP(m_map, seen, p.y, p.x + 1)) res.add(new Point(p.x + 1, p.y));
-		if (validP(m_map, seen, p.y, p.x - 1)) res.add(new Point(p.x - 1, p.y));
+		if (validP(map, seen, p.y + 1, p.x, gb, enCollision)) 
+			res.add(new Point(p.x, p.y + 1));
+		if (validP(map, seen, p.y - 1, p.x, gb, enCollision)) 
+			res.add(new Point(p.x, p.y - 1));
+		if (validP(map, seen, p.y, p.x + 1, gb, enCollision)) 
+			res.add(new Point(p.x + 1, p.y));
+		if (validP(map, seen, p.y, p.x - 1, gb, enCollision)) 
+			res.add(new Point(p.x - 1, p.y));
 		return res;
 	}
 	private int getEstDist(int x0, int y0, int x1, int y1) {
@@ -187,20 +287,20 @@ public class SnakePlayer {
 	}
 
 	
-	private boolean processP(int [][] map, boolean [][] seen, Queue<Point> q, int i, int j, int dist) {
-		if (m_food.y == i && m_food.x == j) {
+	private byte processP(Point food, int [][] map, boolean [][] seen, Queue<Point> q, int i, int j, int dist) {
+		if (food.y == i && food.x == j) {
 			map[i][j] = dist + 1;
-			return true;
+			return 1;
 		}
 		q.offer(new Point(j, i));
 		seen[i][j] = true;
-		return false;
+		return 0;
 	}
 	private boolean pntInRange(int [][] map, int i, int j) {
 		return i >= 0 && i < m_height && j >= 0 && j < m_width;
 	}
-	private boolean validP(int [][] map, boolean [][] seen, int i, int j) {
-		return pntInRange(map, i, j) && ((m_gameBoard[i][j] & SNAKE) == 0) && !seen[i][j];
+	private boolean validP(int [][] map, boolean [][] seen, int i, int j, byte [][] gameBoard, boolean enCollision) {
+		return pntInRange(map, i, j) && (enCollision || (gameBoard[i][j] & SNAKE) == 0) && !seen[i][j];
 	}
 	
 	private void clearPath(boolean overlapOnly) {
