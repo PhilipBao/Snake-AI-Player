@@ -65,7 +65,7 @@ public class SnakeBoard extends JPanel implements ActionListener {
     	m_body.offer(new Point(B_WIDTH/2 - 1, B_HEIGHT/2));
     	m_body.offer(new Point(B_WIDTH/2, B_HEIGHT/2));
     	
-    	m_head = new Point(B_HEIGHT/2, B_WIDTH/2);
+    	m_head = new Point(B_WIDTH/2, B_HEIGHT/2);
     	m_currD = Direction.right;
         locateFood();
     }
@@ -95,6 +95,8 @@ public class SnakeBoard extends JPanel implements ActionListener {
         			fillCell(g, j, i, Color.green);
         		} else if ((m_gameBoard[i][j] & PATH) > 0) {
         			fillCell(g, j, i, Color.yellow);
+        		} else if ((m_gameBoard[i][j] & LPATH) > 0) {
+        			fillCell(g, j, i, Color.orange);
         		} else {
         			fillCell(g, j, i, Color.white);
         		}
@@ -128,7 +130,6 @@ public class SnakeBoard extends JPanel implements ActionListener {
             if (m_bodyLen >= MAX_BODY_LEN) {
             	m_paused = true;
             	System.out.println("MAX_LEN: " + MAX_BODY_LEN + " reached!");
-            	//initGame();
             } else {
             	m_gameBoard[m_head.y][m_head.x] &= ~FOOD;
             	locateFood();
@@ -139,6 +140,7 @@ public class SnakeBoard extends JPanel implements ActionListener {
     }
     private boolean willCollide() {
     	if (m_head.y < 0 || m_head.y >= B_HEIGHT || m_head.x < 0 || m_head.x >= B_WIDTH) {
+    		System.out.println(m_head.y + " " + m_head.x + " " + B_HEIGHT + " " + B_WIDTH);
     		System.out.println("[Info] SnakeBoard.willCollide(): Collision (1)!");
     		return true;
     	}
@@ -172,15 +174,17 @@ public class SnakeBoard extends JPanel implements ActionListener {
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
 		//System.out.println(m_paused);
 		if (!m_paused) {
             move();
             if (m_aiON) {
-	            m_player.loadInBoard(m_gameBoard, m_head, m_food);
-	            m_player.findShortestPath();
-	            m_gameBoard = m_player.getBoardWithPath();
-	            Direction sugg = m_player.getDirection(m_currD);
+            	if (m_player.needReload()) {
+            		m_player.loadInBoard(m_gameBoard, m_head, m_food);
+            		m_player.findShortestPath();
+            		//m_player.findlongestPath();
+            		m_gameBoard = m_player.getBoardWithPath();
+            	}
+	            Direction sugg = m_player.getDirection();
 	            if (sugg != Direction.none) {
 	            	m_currD = sugg;
 	            }

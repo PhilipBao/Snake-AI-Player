@@ -10,10 +10,11 @@ public final class Constants {
 	// Timer and Snake Constants
 	public static final int DELAY = 10;
 	public static final int MAX_BODY_LEN = 400;
-	public static enum Direction {up, down, left, right, none};
+	public static enum Direction {none, up, down, left, right};
 	
 	// 0 - space, 1 - snake, 2 - food, 4 - path
 	public static final byte SNAKE = 1;
 	public static final byte FOOD = 2;
 	public static final byte PATH = 4;
+	public static final byte LPATH = 8;
 }

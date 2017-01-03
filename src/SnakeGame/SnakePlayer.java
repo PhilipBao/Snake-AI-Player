@@ -1,17 +1,15 @@
 package SnakeGame;
 
-import static SnakeGame.Constants.PATH;
-import static SnakeGame.Constants.SNAKE;
+import static SnakeGame.Constants.*;
 
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Stack;
 
 import SnakeGame.Constants.Direction;
 
@@ -23,32 +21,39 @@ public class SnakePlayer {
 	private Point m_food;
 	
 	private int[][] m_map;
+	private Stack <Direction> m_path;
 	
 	public SnakePlayer(int width, int height) {
 		m_width = width;
 		m_height = height;
+		m_path = new Stack<Direction>();
+	}
+	
+	public boolean needReload () {
+		return m_path.isEmpty();
 	}
 	
 	public void loadInBoard(byte [][] currGameBoard, Point head, Point food) {
 		m_gameBoard = currGameBoard;
 		m_head = head;
 		m_food = food;
-		clearPath();
+		clearPath(false);
+		m_path.clear();
 	}
 	
 	public byte[][] getBoardWithPath() {
 		return m_gameBoard;
 	}
 	
-	private void clearPath() {
-        for (int i = 0; i < m_height; ++ i) {
-        	for (int j = 0; j < m_width; ++ j) {
-        		if ((m_gameBoard[i][j] & PATH) > 0) {
-        			m_gameBoard[i][j] &= ~PATH;
-        		}
-        	}
-        }
-    }
+	public Direction getDirection() {
+		//System.out.println(m_path.peek());
+		//printDirStack(m_path);
+		clearPath(true);
+		if (m_path.isEmpty())
+			return Direction.none;
+		else 
+			return m_path.pop();
+	}
 	
 	// bfs
 	public void findShortestPath() {
@@ -85,10 +90,11 @@ public class SnakePlayer {
 			}
 			++ d;
 		}
-		if (found)
-			calculateThePath(m_map);
 		if (!found)
 			System.out.println("[Error] SnakePlayer.findShortestPath() Counld not find the path!");
+		else
+			constructPathBFS();
+			
 	}
 
 	// dfs
@@ -103,52 +109,60 @@ public class SnakePlayer {
 		}
 		if (!pntInRange(m_map, y0, x0)) return;
 		m_map[y0][x0] = getEstDist(x0, y0, x1, y1);
-		dfs(new Point(m_head), new Point(m_food), seen, new LinkedList<> (), parent);
-		
+		dfs(new Point(m_head), new Point(m_head), new Point(m_food), seen, parent);
 	}
-	private void dfs(Point from, Point to, boolean [][] seen, Queue<Direction> path, Point [][] parent) {
-		if (!path.isEmpty()) return;
+	
+	
+	
+	
+	
+	private void dfs(Point origin, Point from, Point to, boolean [][] seen, Point [][] parent) {
+		if (!m_path.isEmpty()) return;
 		
 		seen[from.y][from.x] = true;
 		if (from.x == to.x && from.y == to.y) {
-			constructPath(from, to, path, parent);
+			constructPathDFS(origin, to, parent);
 		} else {
 			List<Point> adjPnts = getAdjPnts(from, seen);
 			if (adjPnts.isEmpty()) return;
 			for (Point p : adjPnts) {
 				m_map[p.y][p.x] = Math.min(m_map[p.y][p.x], getEstDist(p.x, p.y, to.x, to.y));
 			}
-			Collections.sort(adjPnts, new Comparator <Point>() { 
-				@Override
-				public int compare(Point a, Point b) {
-					return m_map[b.y][b.x] - m_map[a.y][a.x];
-				}
+			Collections.sort(adjPnts, (a, b) -> {
+				return m_map[b.y][b.x] - m_map[a.y][a.x];
 			});
+
 			for (Point p : adjPnts) {
 				if (!seen[p.y][p.x]) {
 					parent[p.y][p.x] = from;
-					dfs(p, to, seen, path, parent);
+					dfs(origin, p, to, seen, parent);
 				}
 			}
 		}
 	}
-	private void constructPath(Point from, Point to, Queue<Direction> path, Point [][] parent) {
-		Point p = from;
+	private void constructPathDFS(Point from, Point to, Point [][] parent) {
+		Point p2 = to;
 		Point tmp;
-		while (p.y != from.y || p.x != from.x) {
-			tmp = parent[p.y][p.x];
-			path.offer(getDir(tmp, p));
-			p = tmp;
-		}
+		 do {
+			tmp = parent[p2.y][p2.x];
+			
+			if (p2 == null || tmp == null || getEstDist(tmp, p2) != 1) {
+				System.out.println("[Error] SnakePlayer: constructPathDFS() Counld not find path!");
+				break;
+			}
+			
+			Direction tmpD = Direction.none;
+			if (tmp.x - p2.x == 1) tmpD = Direction.left;
+			if (tmp.x - p2.x == -1) tmpD = Direction.right;
+			if (tmp.y - p2.y == 1) tmpD = Direction.down;
+			if (tmp.y - p2.y == -1) tmpD = Direction.up;
+			
+			m_path.push(tmpD);
+			p2 = tmp;
+			m_gameBoard[p2.y][p2.x] |= LPATH;
+		} while (p2.y != from.y || p2.x != from.x);
 	}
-	private Direction getDir(Point from, Point to) {
-		if (getEstDist(from.x, from.y, to.x, to.y) != 1) return Direction.none;
-		if (from.x - to.x == 1) return Direction.left;
-		if (from.x - to.x == -1) return Direction.right;
-		if (from.y - to.y == 1) return Direction.up;
-		if (from.y - to.y == -1) return Direction.down;
-		return Direction.none;
-	}
+
 	private List<Point> getAdjPnts(Point p, boolean [][] seen) {
 		List<Point> res = new ArrayList<Point>();
 		if (validP(m_map, seen, p.y + 1, p.x)) res.add(new Point(p.x, p.y + 1));
@@ -160,29 +174,10 @@ public class SnakePlayer {
 	private int getEstDist(int x0, int y0, int x1, int y1) {
 		return Math.abs(x1 - x0) + Math.abs(y1 - y0);
 	}
-
-	
-	
-	
-	
-	public Direction getDirection(Direction currDirection) {
-		//m_head
-		int i0 = m_head.y, j0 = m_head.x;
-		if (pntInRange(m_gameBoard, i0 - 1, j0) && (m_gameBoard[i0 - 1][j0] & PATH) > 0) {
-			return Direction.down;
-		} else if (pntInRange(m_gameBoard, i0 + 1, j0) && (m_gameBoard[i0 + 1][j0] & PATH) > 0) {
-			return Direction.up;
-		} else if (pntInRange(m_gameBoard, i0, j0 - 1) && (m_gameBoard[i0][j0 - 1] & PATH) > 0) {
-			return Direction.left;
-		} else if (pntInRange(m_gameBoard, i0, j0 + 1) && (m_gameBoard[i0][j0 + 1] & PATH) > 0) {
-			return Direction.right;
-		}
-		
-		return Direction.none;
+	private int getEstDist(Point p1, Point p2) {
+		return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
 	}
-	
-	
-	
+
 	
 	private boolean processP(int [][] map, boolean [][] seen, Queue<Point> q, int i, int j, int dist) {
 		if (m_food.y == i && m_food.x == j) {
@@ -196,44 +191,61 @@ public class SnakePlayer {
 	private boolean pntInRange(int [][] map, int i, int j) {
 		return i >= 0 && i < m_height && j >= 0 && j < m_width;
 	}
-	private boolean pntInRange(byte [][] map, int i, int j) {
-		return i >= 0 && i < m_height && j >= 0 && j < m_width;
-	}
 	private boolean validP(int [][] map, boolean [][] seen, int i, int j) {
 		return pntInRange(map, i, j) && ((m_gameBoard[i][j] & SNAKE) == 0) && !seen[i][j];
 	}
 	
-	private void calculateThePath(int [][] map) {
+	private void constructPathBFS() {
+		int [][] map = m_map;
 		int i0 = m_food.y, j0 = m_food.x;
 		int dist = map[i0][j0];
 		m_gameBoard[i0][j0] |= PATH;
+		
 		do {
 			boolean found = false;
 			if (pntInRange(map, i0 - 1, j0) && map[i0 - 1][j0] == dist - 1) {
 				dist --;
 				i0 --;
 				found = true;
+				m_path.push(Direction.up);
 			} else if (pntInRange(map, i0 + 1, j0) && map[i0 + 1][j0] == dist - 1) {
 				dist --;
 				i0 ++;
 				found = true;
+				m_path.push(Direction.down);
 			} else if (pntInRange(map, i0, j0 - 1) && map[i0][j0 - 1] == dist - 1) {
 				dist --;
 				j0 --;
 				found = true;
+				m_path.push(Direction.right);
 			} else if (pntInRange(map, i0, j0 + 1) && map[i0][j0 + 1] == dist - 1) {
 				dist --;
 				j0 ++;
 				found = true;
+				m_path.push(Direction.left);
 			}
 			
 			if (!found) {
-				System.out.println("[Error] SnakePlayer: calculateThePath() Counld not find path!");
+				System.out.println("[Error] SnakePlayer: constructPathBFS() Counld not find path!");
 				break;
 			}
 			m_gameBoard[i0][j0] |= PATH;
 		} while (j0 != m_head.x || i0 != m_head.y);
+		//printDirQueue((List<Direction>)m_path);
 	}
+	
+	private void clearPath(boolean overlapOnly) {
+        for (int i = 0; i < m_height; ++ i) {
+        	for (int j = 0; j < m_width; ++ j) {
+        		if ((m_gameBoard[i][j] & SNAKE) > 0 ||
+        				(((m_gameBoard[i][j] & PATH) | (m_gameBoard[i][j] & LPATH)) > 0 && 
+        						!overlapOnly)) {
+        			m_gameBoard[i][j] &= ~PATH;
+        			m_gameBoard[i][j] &= ~LPATH;
+        		}
+        	}
+        }
+    }
 	
 	private void printMap (int [][] map) {
 		for (int i = 0; i < map.length; ++ i) {
@@ -244,5 +256,40 @@ public class SnakePlayer {
 				else System.out.print("           " + map[i][j]);
 			}
 		}
+	}
+	private void printMap (Point [][] map) {
+		for (int i = 0; i < map.length; ++ i) {
+			System.out.println(" ");
+			System.out.println(" ");
+			for (int j = 0; j < map[0].length; ++ j) {
+				if (map[i][j] == null) System.out.print("                       *          ");
+				else System.out.print("           " + map[i][j]);
+			}
+		}
+	}
+
+	private void printDirStack(List<Direction> dirQ) {
+		System.out.println(" ");
+		for (Direction d : dirQ) {
+			switch (d) {
+			case up:
+				System.out.print("up");
+				break;
+			case down:
+				System.out.print("down");
+				break;
+			case left:
+				System.out.print("left");
+				break;
+			case right:
+				System.out.print("right");
+				break;
+			case none:
+				System.out.print("none");
+				break;
+			}
+			System.out.print(" ");
+		}
+		System.out.println(" ");
 	}
 }
