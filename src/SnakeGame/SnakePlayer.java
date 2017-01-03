@@ -1,6 +1,7 @@
 package SnakeGame;
 
 import static SnakeGame.Constants.*;
+import static SnakeGame.Utils.*;
 
 import java.awt.Point;
 import java.util.ArrayList;
@@ -71,6 +72,8 @@ public class SnakePlayer {
 		int d = 0;
 		boolean found = false;
 		
+		Point [][] parent = new Point[m_height][m_width];
+		
 		while (!q.isEmpty() && !found) {
 			int size = q.size();
 			for (int i = 0; i < size; ++ i) {
@@ -79,21 +82,30 @@ public class SnakePlayer {
 				int j0 = currP.x;
 				m_map[i0][j0] = d;
 				
-				if (validP(m_map, seen, i0 + 1, j0))
+				if (validP(m_map, seen, i0 + 1, j0)) {
 					found |= processP(m_map, seen, q, i0 + 1, j0, d);
-				if (validP(m_map, seen, i0 - 1, j0))
+					parent[i0 + 1][j0] = currP;
+				}
+				if (validP(m_map, seen, i0 - 1, j0)) {
 					found |= processP(m_map, seen, q, i0 - 1, j0, d);
-				if (validP(m_map, seen, i0, j0 + 1))
+					parent[i0 - 1][j0] = currP;
+				}
+				if (validP(m_map, seen, i0, j0 + 1)) {
 					found |= processP(m_map, seen, q, i0, j0 + 1, d);
-				if (validP(m_map, seen, i0, j0 - 1))
+					parent[i0][j0 + 1] = currP;
+				}
+				if (validP(m_map, seen, i0, j0 - 1)) {
 					found |= processP(m_map, seen, q, i0, j0 - 1, d);
+					parent[i0][j0 - 1] = currP;
+				}
+					
 			}
 			++ d;
 		}
 		if (!found)
 			System.out.println("[Error] SnakePlayer.findShortestPath() Counld not find the path!");
 		else
-			constructPathBFS();
+			constructPath(m_head, m_food, parent);
 			
 	}
 
@@ -112,16 +124,12 @@ public class SnakePlayer {
 		dfs(new Point(m_head), new Point(m_head), new Point(m_food), seen, parent);
 	}
 	
-	
-	
-	
-	
 	private void dfs(Point origin, Point from, Point to, boolean [][] seen, Point [][] parent) {
 		if (!m_path.isEmpty()) return;
 		
 		seen[from.y][from.x] = true;
 		if (from.x == to.x && from.y == to.y) {
-			constructPathDFS(origin, to, parent);
+			constructPath(origin, to, parent);
 		} else {
 			List<Point> adjPnts = getAdjPnts(from, seen);
 			if (adjPnts.isEmpty()) return;
@@ -140,14 +148,14 @@ public class SnakePlayer {
 			}
 		}
 	}
-	private void constructPathDFS(Point from, Point to, Point [][] parent) {
+	private void constructPath(Point from, Point to, Point [][] parent) {
 		Point p2 = to;
 		Point tmp;
 		 do {
 			tmp = parent[p2.y][p2.x];
 			
 			if (p2 == null || tmp == null || getEstDist(tmp, p2) != 1) {
-				System.out.println("[Error] SnakePlayer: constructPathDFS() Counld not find path!");
+				System.out.println("[Error] SnakePlayer: constructPath() Counld not find path!");
 				break;
 			}
 			
@@ -195,45 +203,6 @@ public class SnakePlayer {
 		return pntInRange(map, i, j) && ((m_gameBoard[i][j] & SNAKE) == 0) && !seen[i][j];
 	}
 	
-	private void constructPathBFS() {
-		int [][] map = m_map;
-		int i0 = m_food.y, j0 = m_food.x;
-		int dist = map[i0][j0];
-		m_gameBoard[i0][j0] |= PATH;
-		
-		do {
-			boolean found = false;
-			if (pntInRange(map, i0 - 1, j0) && map[i0 - 1][j0] == dist - 1) {
-				dist --;
-				i0 --;
-				found = true;
-				m_path.push(Direction.up);
-			} else if (pntInRange(map, i0 + 1, j0) && map[i0 + 1][j0] == dist - 1) {
-				dist --;
-				i0 ++;
-				found = true;
-				m_path.push(Direction.down);
-			} else if (pntInRange(map, i0, j0 - 1) && map[i0][j0 - 1] == dist - 1) {
-				dist --;
-				j0 --;
-				found = true;
-				m_path.push(Direction.right);
-			} else if (pntInRange(map, i0, j0 + 1) && map[i0][j0 + 1] == dist - 1) {
-				dist --;
-				j0 ++;
-				found = true;
-				m_path.push(Direction.left);
-			}
-			
-			if (!found) {
-				System.out.println("[Error] SnakePlayer: constructPathBFS() Counld not find path!");
-				break;
-			}
-			m_gameBoard[i0][j0] |= PATH;
-		} while (j0 != m_head.x || i0 != m_head.y);
-		//printDirQueue((List<Direction>)m_path);
-	}
-	
 	private void clearPath(boolean overlapOnly) {
         for (int i = 0; i < m_height; ++ i) {
         	for (int j = 0; j < m_width; ++ j) {
@@ -246,50 +215,4 @@ public class SnakePlayer {
         	}
         }
     }
-	
-	private void printMap (int [][] map) {
-		for (int i = 0; i < map.length; ++ i) {
-			System.out.println(" ");
-			System.out.println(" ");
-			for (int j = 0; j < map[0].length; ++ j) {
-				if (map[i][j] == Integer.MAX_VALUE) System.out.print("            *");
-				else System.out.print("           " + map[i][j]);
-			}
-		}
-	}
-	private void printMap (Point [][] map) {
-		for (int i = 0; i < map.length; ++ i) {
-			System.out.println(" ");
-			System.out.println(" ");
-			for (int j = 0; j < map[0].length; ++ j) {
-				if (map[i][j] == null) System.out.print("                       *          ");
-				else System.out.print("           " + map[i][j]);
-			}
-		}
-	}
-
-	private void printDirStack(List<Direction> dirQ) {
-		System.out.println(" ");
-		for (Direction d : dirQ) {
-			switch (d) {
-			case up:
-				System.out.print("up");
-				break;
-			case down:
-				System.out.print("down");
-				break;
-			case left:
-				System.out.print("left");
-				break;
-			case right:
-				System.out.print("right");
-				break;
-			case none:
-				System.out.print("none");
-				break;
-			}
-			System.out.print(" ");
-		}
-		System.out.println(" ");
-	}
 }

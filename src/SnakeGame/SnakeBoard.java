@@ -50,9 +50,6 @@ public class SnakeBoard extends JPanel implements ActionListener {
 
     
     private void initGame() {
-    	//m_timer = new Timer(DELAY, this);
-        //m_timer.start();
-        
     	m_paused = true;
     	m_aiON = true;
     	m_body = new LinkedList<Point>(); 
@@ -223,17 +220,4 @@ public class SnakeBoard extends JPanel implements ActionListener {
             }
         }
     }
-	
-	private void printMap (byte [][] map) {
-		System.out.println(" ");
-		for (int i = 0; i < map.length; ++ i) {
-			System.out.println(" ");
-			System.out.println(" ");
-			for (int j = 0; j < map[0].length; ++ j) {
-				if (map[i][j] == Integer.MAX_VALUE) System.out.print("            *");
-				else System.out.print("           " + map[i][j]);
-			}
-		}
-		System.out.println(" ");
-	}
 }
