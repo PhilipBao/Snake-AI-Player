@@ -2,8 +2,8 @@ package SnakeGame;
 
 public final class Constants {
 	// Board size and configure
-	public static final int B_WIDTH = 5;
-	public static final int B_HEIGHT = 5;
+	public static final int B_WIDTH = 20;
+	public static final int B_HEIGHT = 20;
 	public static final int IMG_SIZE = 10;// in px
 	public static final int MARGIN_SIZE = 10;// in px
 	

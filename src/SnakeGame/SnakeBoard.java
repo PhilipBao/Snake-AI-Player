@@ -28,7 +28,7 @@ public class SnakeBoard extends JPanel implements ActionListener {
     
     // 0 - space, 1 - snake, 2 - food, 4 - path
     byte [][] m_gameBoard;
-    Point m_head, m_food;
+    Point m_head, m_tail, m_food;
     Queue <Point> m_body;
     Direction m_currD;
     
@@ -63,6 +63,7 @@ public class SnakeBoard extends JPanel implements ActionListener {
     	m_body.offer(new Point(B_WIDTH/2, B_HEIGHT/2));
     	
     	m_head = new Point(B_WIDTH/2, B_HEIGHT/2);
+    	m_tail = new Point(B_WIDTH/2 - 2, B_HEIGHT/2);
     	m_currD = Direction.right;
         locateFood();
     }
@@ -85,6 +86,8 @@ public class SnakeBoard extends JPanel implements ActionListener {
         		if ((m_gameBoard[i][j] & SNAKE) > 0) {
         			if (i == m_head.y && j == m_head.x)
         				fillCell(g, j, i, Color.black);
+        			else if (i == m_tail.y && j == m_tail.x)
+        				fillCell(g, j, i, Color.magenta);
         			else 
         				fillCell(g, j, i, Color.GRAY);
         			
@@ -161,6 +164,7 @@ public class SnakeBoard extends JPanel implements ActionListener {
         	if (m_bodyLen <= m_body.size()) {
             	Point tail = m_body.poll();
             	m_gameBoard[tail.y][tail.x] &= ~SNAKE;
+            	m_tail = m_body.peek();
             }
         	m_body.offer(new Point(m_head.x, m_head.y));
         	m_gameBoard[m_head.y][m_head.x] |= SNAKE;
