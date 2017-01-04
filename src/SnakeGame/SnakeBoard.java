@@ -175,7 +175,6 @@ public class SnakeBoard extends JPanel implements ActionListener {
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		//System.out.println(m_paused);
 		if (!m_paused) {
             move();
             if (m_aiON) {
@@ -183,13 +182,10 @@ public class SnakeBoard extends JPanel implements ActionListener {
             		m_player.loadInBoard(m_gameBoard, m_body, m_food);
             		m_player.findPath();
             		m_gameBoard = m_player.getBoardWithPath();
-            		m_paused = true;
             	}
 	            Direction sugg = m_player.getDirection();
 	            if (sugg != Direction.none) {
 	            	m_currD = sugg;
-	            } else {
-	            	m_paused = true;
 	            }
             }
         }

@@ -22,6 +22,7 @@ public class SnakePlayer {
 	private Point m_food;
 	private Queue<Point> m_snake;
 	
+	
 	private Stack <Direction> m_path;
 	
 	private byte m_pathCnter;
@@ -58,14 +59,14 @@ public class SnakePlayer {
 	}
 	
 	public void findPath() {
-		Point [][] vecMapS = findShortestPath(m_head, m_food, m_gameBoard);
+		Point [][] vecMapS = findShortestPath(new Point(m_head), new Point(m_food), m_gameBoard);
 		
-		Stack <Direction> shortPath = constructPath(m_head, m_food, vecMapS, m_gameBoard, HIDE_PATH);
+		Stack <Direction> shortPath = constructPath(new Point(m_head), new Point(m_food), vecMapS, m_gameBoard, HIDE_PATH);
 		if (!shortPath.isEmpty()) {
 			byte [][] tmpGB =  copy2dArr(m_gameBoard);
 			Point tmp_food = new Point();
-			moveAlongPath(m_snake, m_food, tmpGB, shortPath, tmp_food);
-			findLongestPath(m_food, tmp_food, tmpGB, NO_COLLISION);
+			moveAlongPath(m_snake, new Point(m_food), tmpGB, shortPath, tmp_food);
+			findLongestPath(new Point(m_food), tmp_food, tmpGB, NO_COLLISION);
 			if (m_pathCnter > 0) {
 				constructPath(m_head, m_food, vecMapS, m_gameBoard, SHOW_PATH);
 				m_path = shortPath;
@@ -73,18 +74,22 @@ public class SnakePlayer {
 			}
 		}
 		
-		Point [][] vecMapL = findLongestPath(m_head, m_snake.peek(), m_gameBoard, NO_COLLISION);
-		Stack <Direction> longPath = constructPath(m_head, m_snake.peek(), vecMapL, m_gameBoard, HIDE_PATH);
+		Point [][] vecMapL = findLongestPath(new Point(m_head), new Point(m_snake.peek()), m_gameBoard, NO_COLLISION);
+		Stack <Direction> longPath = constructPath(new Point(m_head), new Point(m_snake.peek()), vecMapL, m_gameBoard, HIDE_PATH);
 		if (m_pathCnter > 0) {
-			constructPath(m_head, m_snake.peek(), vecMapL, m_gameBoard, SHOW_PATH);
+			constructPath(new Point(m_head), new Point(m_snake.peek()), vecMapL, m_gameBoard, SHOW_PATH);
 			m_path = longPath;
 			return;
 		}
-		System.out.println("GAME OVER");
 		
-		Point [][] vecMapTry = findLongestPath(m_head, m_food, m_gameBoard, WITH_COLLISION);
-		m_path = constructPath(m_head, m_food, vecMapTry, m_gameBoard, HIDE_PATH);
-		m_path.clear();
+		Point [][] vecMapTry = findLongestPath(m_head, m_food, m_gameBoard, NO_COLLISION);
+		longPath = constructPath(m_head, m_food, vecMapTry, m_gameBoard, HIDE_PATH);
+		if (m_pathCnter > 0) {
+			constructPath(m_head, m_food, vecMapTry, m_gameBoard, SHOW_PATH);
+			m_path = longPath;
+			return;
+		}
+		System.out.println("GAME OVER!");
 	}
 	
 	private void moveAlongPath(Queue<Point> snake, Point food, byte[][] gameBoard, Stack <Direction> path, Point foodLoc) {
@@ -115,7 +120,8 @@ public class SnakePlayer {
         	for (int j = 0; j < m_width; ++ j)
         		gameBoard[i][j] = (byte) ((gameBoard[i][j] == PLACE_HOLDER) ? 1 : 0);
 		gameBoard[p.y][p.x] = FOOD;
-		foodLoc = new Point(p);
+		foodLoc.x = p.x;
+		foodLoc.y = p.y;
 	}
 	
 	// bfs
@@ -211,7 +217,7 @@ public class SnakePlayer {
 		if (from.x == to.x && from.y == to.y) {
 			m_pathCnter ++;
 		} else {
-			List<Point> adjPnts = getAdjPnts(from, seen, map, gb, enCollision);
+			List<Point> adjPnts = getAdjPnts(from, to, seen, map, gb, enCollision);
 			if (adjPnts.isEmpty()) return;
 			for (Point p : adjPnts) {
 				map[p.y][p.x] = Math.min(map[p.y][p.x], getEstDist(p.x, p.y, to.x, to.y));
@@ -241,15 +247,8 @@ public class SnakePlayer {
 		do {
 			if (p2 != null)
 				tmp = parent[p2.y][p2.x];
-			if (p2 == null || tmp == null || getEstDist(tmp, p2) != 1) {
-				if (p2 == null)
-					System.out.println("[Error] SnakePlayer: constructPath() No Path Found p2 is null");
-				if (tmp == null)
-					System.out.println("[Error] SnakePlayer: constructPath() No Path Found tmp is null");
-				if (getEstDist(tmp, p2) != 1)
-					System.out.println("[Error] SnakePlayer: constructPath() No Path Found tmp is not adj to p2");
+			else
 				break;
-			}
 
 			Direction tmpD = Direction.none;
 			if (tmp.x - p2.x == 1)
@@ -269,7 +268,7 @@ public class SnakePlayer {
 		return res_path;
 	}
 
-	private List<Point> getAdjPnts(Point p, boolean [][] seen, int [][] map, byte [][] gb, boolean enCollision) {
+	private List<Point> getAdjPnts(Point p, Point to, boolean [][] seen, int [][] map, byte [][] gb, boolean enCollision) {
 		List<Point> res = new ArrayList<Point>();
 		if (validP(map, seen, p.y + 1, p.x, gb, enCollision)) 
 			res.add(new Point(p.x, p.y + 1));
@@ -279,6 +278,8 @@ public class SnakePlayer {
 			res.add(new Point(p.x + 1, p.y));
 		if (validP(map, seen, p.y, p.x - 1, gb, enCollision)) 
 			res.add(new Point(p.x - 1, p.y));
+		if (getEstDist(p, to) <= 1)
+			res.add(new Point(to));
 		return res;
 	}
 	private int getEstDist(int x0, int y0, int x1, int y1) {
