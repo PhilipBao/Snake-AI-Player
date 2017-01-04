@@ -129,12 +129,19 @@ public class SnakeBoard extends JPanel implements ActionListener {
 	
 	/**
 	 * Reselect the location for food.
+	 * 
+	 * TODO: Modify the algorithm to reduce run time
 	 */
 	private void locateFood() {
 		int t_x, t_y;
+		int cnt = 0;
 		do {
 			t_x = (int) (Math.random() * B_WIDTH);
 			t_y = (int) (Math.random() * B_HEIGHT);
+			if (cnt ++ >= B_WIDTH * B_HEIGHT * 5) {
+				System.out.println("No place to generate food!");
+				break;
+			}
 		} while (t_x >= B_WIDTH || t_y >= B_HEIGHT || (t_x == m_head.x && t_y == m_head.y) ||
 				     (m_gameBoard[t_y][t_x] != 0 && (m_gameBoard[t_y][t_x] & PATH) == 0));
 		m_food = new Point(t_x, t_y);
@@ -167,12 +174,12 @@ public class SnakeBoard extends JPanel implements ActionListener {
      */
     private boolean willCollide() {
     	if (m_head.y < 0 || m_head.y >= B_HEIGHT || m_head.x < 0 || m_head.x >= B_WIDTH) {
-    		System.out.println("[Info] SnakeBoard.willCollide(): Collision (1)!");
+    		System.out.println("[Info] SnakeBoard.willCollide(): Collision! Collide with wall!");
     		return true;
     	}
     	
     	if ((m_gameBoard[m_head.y][m_head.x] & SNAKE) > 0)
-    		System.out.println("[Info] SnakeBoard.willCollide(): Collision (2)!");
+    		System.out.println("[Info] SnakeBoard.willCollide(): Collision! Collide with snake body!");
     	return (m_gameBoard[m_head.y][m_head.x] & SNAKE) > 0;
     }
     /**

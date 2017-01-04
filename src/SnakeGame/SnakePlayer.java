@@ -81,7 +81,7 @@ public class SnakePlayer {
 	/**
 	 * get next recommended location
 	 * 
-	 * @return next recommanded path
+	 * @return next recommended path
 	 */
 	public Direction getDirection() {
 		clearPath(CLEAR_OVERLAP_ONLY);
@@ -152,7 +152,7 @@ public class SnakePlayer {
 			Arrays.fill(map[i], Integer.MAX_VALUE);
 		}
 		if (!pntInRange(map, y0, x0)) {
-			System.out.println("[Error] SnakePlayer.findShortestPath(): idx of head is invalid!");
+			if (EN_LOG) System.out.println("[Error] SnakePlayer.findShortestPath(): idx of head is invalid!");
 			return null;
 		}
 		map[y0][x0] = 0;
@@ -187,7 +187,7 @@ public class SnakePlayer {
 			++ d;
 		}
 		if (m_pathCnter == 0) {
-			System.out.println("[Error] SnakePlayer.findShortestPath(): Counld not find the path!");
+			if (EN_LOG) System.out.println("[Error] SnakePlayer.findShortestPath(): Could not find the path!");
 			return null;
 		}
 		return parent;
@@ -216,7 +216,7 @@ public class SnakePlayer {
 			Arrays.fill(map[i], Integer.MAX_VALUE);
 		}
 		if (!pntInRange(map, y0, x0)) {
-			System.out.println("[Error] SnakePlayer.findLongestPath(): idx of head is invalid!");
+			if (EN_LOG) System.out.println("[Error] SnakePlayer.findLongestPath(): idx of head is invalid!");
 			return null;
 		}
 		map[y0][x0] = getEstDist(x0, y0, x1, y1);
@@ -224,7 +224,7 @@ public class SnakePlayer {
 		
 		dfs(head, head, food, gameBoard, map, seen, parent, enCollision);
 		if (m_pathCnter == 0) {
-			System.out.println("[Error] SnakePlayer.findLongestPath(): Counld not find the path!");
+			if (EN_LOG) System.out.println("[Error] SnakePlayer.findLongestPath(): Counld not find the path!");
 			return null;
 		}
 		return parent;
@@ -256,7 +256,7 @@ public class SnakePlayer {
 				else if (prev == Direction.right)  p.x --; 
 				else if (prev == Direction.left) p.x ++;  
 				else {
-					System.out.println("[Error] SnakePlayer.moveAlongPath(): Unexpected value!");
+					if (EN_LOG) System.out.println("[Error] SnakePlayer.moveAlongPath(): Unexpected value!");
 					return;
 				}
 			} else {
@@ -285,7 +285,7 @@ public class SnakePlayer {
 	 * @param enCollision
 	 */
 	private void dfs(Point origin, Point from, Point to, byte[][] gb, int [][] map, boolean [][] seen, Point [][] parent, boolean enCollision) {
-		if (m_pathCnter > 0) return;
+		if (m_pathCnter > 0) return; // TODO: Generate more possible paths.
 		
 		seen[from.y][from.x] = true;
 		if (from.x == to.x && from.y == to.y) {
@@ -322,7 +322,7 @@ public class SnakePlayer {
 	private Stack<Direction> constructPath(Point from, Point to, Point[][] parent, byte [][] gameBoard, boolean showPath) {
 		Stack<Direction> res_path = new Stack<Direction>();
 		if (parent == null) {
-			System.out.println("[Error] SnakePlayer: constructPath() Parent vector field is null");
+			if (EN_LOG) System.out.println("[Error] SnakePlayer: constructPath() Parent vector field is null");
 			return res_path;
 		}
 		Point p2 = to;

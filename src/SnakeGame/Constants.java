@@ -24,6 +24,8 @@ public final class Constants {
 	public static final byte PLACE_HOLDER = 16;
 	
 	// Flag Constant
+	public static final boolean EN_LOG = false;
+	
 	public static final boolean CLEAR_ALL = false;
 	public static final boolean CLEAR_OVERLAP_ONLY = true;
 	public static final boolean HIDE_PATH = false;
