@@ -183,6 +183,7 @@ public class SnakeBoard extends JPanel implements ActionListener {
             		m_player.loadInBoard(m_gameBoard, m_body, m_food);
             		m_player.findPath();
             		m_gameBoard = m_player.getBoardWithPath();
+            		m_paused = true;
             	}
 	            Direction sugg = m_player.getDirection();
 	            if (sugg != Direction.none) {

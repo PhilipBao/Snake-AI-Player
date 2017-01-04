@@ -73,17 +73,17 @@ public class SnakePlayer {
 			}
 		}
 		
-		Point [][] vecMapL = findLongestPath(m_head, m_food, m_gameBoard, NO_COLLISION);
-		Stack <Direction> longPath = constructPath(m_head, m_food, vecMapL, m_gameBoard, HIDE_PATH);
+		Point [][] vecMapL = findLongestPath(m_head, m_snake.peek(), m_gameBoard, NO_COLLISION);
+		Stack <Direction> longPath = constructPath(m_head, m_snake.peek(), vecMapL, m_gameBoard, HIDE_PATH);
 		if (m_pathCnter > 0) {
-			constructPath(m_head, m_food, vecMapL, m_gameBoard, SHOW_PATH);
+			constructPath(m_head, m_snake.peek(), vecMapL, m_gameBoard, SHOW_PATH);
 			m_path = longPath;
 			return;
 		}
 		System.out.println("GAME OVER");
 		
-		//Point [][] vecMapTry = findLongestPath(m_head, m_food, m_gameBoard, WITH_COLLISION);
-		//m_path = constructPath(m_head, m_food, vecMapTry, m_gameBoard, HIDE_PATH);
+		Point [][] vecMapTry = findLongestPath(m_head, m_food, m_gameBoard, WITH_COLLISION);
+		m_path = constructPath(m_head, m_food, vecMapTry, m_gameBoard, HIDE_PATH);
 		m_path.clear();
 	}
 	
