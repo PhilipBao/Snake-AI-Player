@@ -17,6 +17,10 @@ import javax.swing.Timer;
 
 import static SnakeGame.Constants.*;
 
+/**
+ * @author philip
+ *
+ */
 public class SnakeBoard extends JPanel implements ActionListener {
     
     private Timer m_timer;
@@ -34,6 +38,9 @@ public class SnakeBoard extends JPanel implements ActionListener {
     
     private boolean m_aiON;
     
+    /**
+     * Initialize the object.
+     */
     public SnakeBoard() {
     	m_player = new SnakePlayer(B_WIDTH, B_HEIGHT);
     			
@@ -49,6 +56,9 @@ public class SnakeBoard extends JPanel implements ActionListener {
     }
 
     
+    /**
+     * Initialize the game.
+     */
     private void initGame() {
     	m_paused = true;
     	m_aiON = true;
@@ -69,6 +79,9 @@ public class SnakeBoard extends JPanel implements ActionListener {
         locateFood();
     }
     
+    /* (non-Javadoc)
+     * @see javax.swing.JComponent#paintComponent(java.awt.Graphics)
+     */
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -104,8 +117,8 @@ public class SnakeBoard extends JPanel implements ActionListener {
         	}
         }
         Toolkit.getDefaultToolkit().sync();
-        
     }
+    
     private void fillCell(Graphics g, int x, int y, Color c) {
     	g.setColor(c);
     	int t = 0;
@@ -114,6 +127,9 @@ public class SnakeBoard extends JPanel implements ActionListener {
     }
 
 	
+	/**
+	 * Reselect the location for food.
+	 */
 	private void locateFood() {
 		int t_x, t_y;
 		do {
@@ -125,6 +141,11 @@ public class SnakeBoard extends JPanel implements ActionListener {
 		m_gameBoard[t_y][t_x] |= FOOD;
 	}
 	
+    /**
+     * Check if the snake will eat the food in the next move.
+     * 
+     * @return if the snake will eat the food in the next move
+     */
     private boolean checkFood() {
         if ((m_gameBoard[m_head.y][m_head.x] & FOOD) > 0) {
             m_bodyLen++;
@@ -139,6 +160,11 @@ public class SnakeBoard extends JPanel implements ActionListener {
         }
         return false;
     }
+    /**
+     * Check if the snake will collide in the next move.
+     * 
+     * @return if the snake will collide in the next move
+     */
     private boolean willCollide() {
     	if (m_head.y < 0 || m_head.y >= B_HEIGHT || m_head.x < 0 || m_head.x >= B_WIDTH) {
     		System.out.println("[Info] SnakeBoard.willCollide(): Collision (1)!");
@@ -149,6 +175,9 @@ public class SnakeBoard extends JPanel implements ActionListener {
     		System.out.println("[Info] SnakeBoard.willCollide(): Collision (2)!");
     	return (m_gameBoard[m_head.y][m_head.x] & SNAKE) > 0;
     }
+    /**
+     * Move the snake body forward a step.
+     */
     private void move() {
     	
         if (m_currD == Direction.right) m_head.x ++;
@@ -173,6 +202,9 @@ public class SnakeBoard extends JPanel implements ActionListener {
     }
     
 	
+	/* (non-Javadoc)
+	 * @see java.awt.event.ActionListener#actionPerformed(java.awt.event.ActionEvent)
+	 */
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		if (!m_paused) {
@@ -193,6 +225,9 @@ public class SnakeBoard extends JPanel implements ActionListener {
 	}
 	
 	private class GameKeyAdapter extends KeyAdapter {
+        /* (non-Javadoc)
+         * @see java.awt.event.KeyAdapter#keyPressed(java.awt.event.KeyEvent)
+         */
         @Override
         public void keyPressed(KeyEvent e) {
 

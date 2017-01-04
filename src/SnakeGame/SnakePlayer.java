@@ -14,6 +14,10 @@ import java.util.Stack;
 
 import SnakeGame.Constants.Direction;
 
+/**
+ * @author philip
+ *
+ */
 public class SnakePlayer {
 	private int m_width;
 	private int m_height;
@@ -27,16 +31,35 @@ public class SnakePlayer {
 	
 	private byte m_pathCnter;
 	
+	
+	/**
+	 * Initialize the player object
+	 * 
+	 * @param width
+	 * @param height
+	 */
 	public SnakePlayer(int width, int height) {
 		m_width = width;
 		m_height = height;
 		m_path = new Stack<Direction>();
 	}
 	
+	/**
+	 * Check if a recalculate path is needed
+	 * 
+	 * @return if a reload is needed
+	 */
 	public boolean needReload () {
 		return m_path.isEmpty();
 	}
 	
+	/**
+	 * Load in current game board and initialize it.
+	 * 
+	 * @param currGameBoard
+	 * @param snake
+	 * @param food
+	 */
 	public void loadInBoard(byte [][] currGameBoard, Queue<Point> snake, Point food) {
 		m_gameBoard = currGameBoard;
 		m_snake = snake;
@@ -46,10 +69,20 @@ public class SnakePlayer {
 		m_path.clear();
 	}
 	
+	/**
+	 * Get the game board marked with path calculated.
+	 * 
+	 * @return the game board marked with path
+	 */
 	public byte[][] getBoardWithPath() {
 		return m_gameBoard;
 	}
 	
+	/**
+	 * get next recommended location
+	 * 
+	 * @return next recommanded path
+	 */
 	public Direction getDirection() {
 		clearPath(CLEAR_OVERLAP_ONLY);
 		if (m_path.isEmpty())
@@ -58,6 +91,9 @@ public class SnakePlayer {
 			return m_path.pop();
 	}
 	
+	/**
+	 * Calculate the path based on current game board
+	 */
 	public void findPath() {
 		Point [][] vecMapS = findShortestPath(new Point(m_head), new Point(m_food), m_gameBoard);
 		
@@ -92,40 +128,15 @@ public class SnakePlayer {
 		System.out.println("GAME OVER!");
 	}
 	
-	private void moveAlongPath(Queue<Point> snake, Point food, byte[][] gameBoard, Stack <Direction> path, Point foodLoc) {
-		int snakeLen = snake.size();
-		Point p = new Point(food);
-		List <Direction> pathList = path;
-		List <Point> snakeList = (List<Point>) snake;
-		for (int i = 0; i < snakeLen; ++ i) {
-			
-			gameBoard[p.y][p.x] = PLACE_HOLDER;
-			if (i < path.size()) {
-				
-				Direction prev = pathList.get(i);
-				if (prev == Direction.up)         p.y --;
-				else if (prev == Direction.down)  p.y ++;  
-				else if (prev == Direction.right)  p.x --; 
-				else if (prev == Direction.left) p.x ++;  
-				else {
-					System.out.println("[Error] SnakePlayer.moveAlongPath(): Unexpected value!");
-					return;
-				}
-			} else {
-				
-				p = snakeList.get(snakeList.size() - 1 - (i - pathList.size()));
-			}
-		}
-		for (int i = 0; i < m_height; ++ i)
-        	for (int j = 0; j < m_width; ++ j)
-        		gameBoard[i][j] = (byte) ((gameBoard[i][j] == PLACE_HOLDER) ? 1 : 0);
-		gameBoard[p.y][p.x] = FOOD;
-		foodLoc.x = p.x;
-		foodLoc.y = p.y;
-	}
-	
-	// bfs
-	public Point [][] findShortestPath(Point head, Point food, byte [][] gameBoard) {
+	/**
+	 * Bfs search through all reachable index and find the shortest path
+	 * 
+	 * @param head location of snake head
+	 * @param food location of food
+	 * @param gameBoard current game board
+	 * @return a vector matrix for all points on map
+	 */
+	private Point [][] findShortestPath(Point head, Point food, byte [][] gameBoard) {
 		m_pathCnter = 0;
 		
 		int x0 = head.x, y0 = head.y;
@@ -182,8 +193,17 @@ public class SnakePlayer {
 		return parent;
 	}
 
-	// dfs
-	public Point [][] findLongestPath(Point head, Point food, byte [][] gameBoard, boolean enCollision) {
+	/**
+	 * Dfs and greedy try to get away from the destination 
+	 * and find a relatively longest path.
+	 * 
+	 * @param head
+	 * @param food
+	 * @param gameBoard
+	 * @param enCollision if the collision in path is allowed
+	 * @return a vector matrix for all points on map
+	 */
+	private Point [][] findLongestPath(Point head, Point food, byte [][] gameBoard, boolean enCollision) {
 		m_pathCnter = 0;
 		
 		int x0 = head.x, y0 = head.y;
@@ -210,6 +230,60 @@ public class SnakePlayer {
 		return parent;
 	}
 	
+	/**
+	 * A helper function for shortest path analysis. Try to move the snake 
+	 * along the calculated path to verify the correctness.
+	 * 
+	 * @param snake a list of points on snake
+	 * @param food location of food
+	 * @param gameBoard current game board
+	 * @param path path calculated
+	 * @param foodLoc the worst possible next food location(as a return value) TODO: Bad practice.
+	 */
+	private void moveAlongPath(Queue<Point> snake, Point food, byte[][] gameBoard, Stack <Direction> path, Point foodLoc) {
+		int snakeLen = snake.size();
+		Point p = new Point(food);
+		List <Direction> pathList = path;
+		List <Point> snakeList = (List<Point>) snake;
+		for (int i = 0; i < snakeLen; ++ i) {
+			
+			gameBoard[p.y][p.x] = PLACE_HOLDER;
+			if (i < path.size()) {
+				
+				Direction prev = pathList.get(i);
+				if (prev == Direction.up)         p.y --;
+				else if (prev == Direction.down)  p.y ++;  
+				else if (prev == Direction.right)  p.x --; 
+				else if (prev == Direction.left) p.x ++;  
+				else {
+					System.out.println("[Error] SnakePlayer.moveAlongPath(): Unexpected value!");
+					return;
+				}
+			} else {
+				
+				p = snakeList.get(snakeList.size() - 1 - (i - pathList.size()));
+			}
+		}
+		for (int i = 0; i < m_height; ++ i)
+        	for (int j = 0; j < m_width; ++ j)
+        		gameBoard[i][j] = (byte) ((gameBoard[i][j] == PLACE_HOLDER) ? 1 : 0);
+		gameBoard[p.y][p.x] = FOOD;
+		foodLoc.x = p.x;
+		foodLoc.y = p.y;
+	}
+	
+	/**
+	 * Helper function for find longest path
+	 * 
+	 * @param origin
+	 * @param from
+	 * @param to
+	 * @param gb
+	 * @param map
+	 * @param seen
+	 * @param parent
+	 * @param enCollision
+	 */
 	private void dfs(Point origin, Point from, Point to, byte[][] gb, int [][] map, boolean [][] seen, Point [][] parent, boolean enCollision) {
 		if (m_pathCnter > 0) return;
 		
@@ -235,6 +309,16 @@ public class SnakePlayer {
 		}
 	}
 
+	/**
+	 * Generated a path based on the vector matrix calculated.
+	 * 
+	 * @param from
+	 * @param to
+	 * @param parent
+	 * @param gameBoard
+	 * @param showPath whether or not to mark the path on game board
+	 * @return the list of direction the snake need to follow to get destination
+	 */
 	private Stack<Direction> constructPath(Point from, Point to, Point[][] parent, byte [][] gameBoard, boolean showPath) {
 		Stack<Direction> res_path = new Stack<Direction>();
 		if (parent == null) {
@@ -268,6 +352,18 @@ public class SnakePlayer {
 		return res_path;
 	}
 
+	/**
+	 * Generated all the possible adjacent point. 
+	 * 
+	 * @param origin TODO: remove this parameter
+	 * @param p
+	 * @param to
+	 * @param seen
+	 * @param map
+	 * @param gb
+	 * @param enCollision
+	 * @return all the adjacent point available
+	 */
 	private List<Point> getAdjPnts(Point origin, Point p, Point to, boolean [][] seen, int [][] map, byte [][] gb, boolean enCollision) {
 		List<Point> res = new ArrayList<Point>();
 		if (validP(map, seen, p.y + 1, p.x, gb, enCollision)) 
@@ -282,9 +378,25 @@ public class SnakePlayer {
 			res.add(new Point(to));
 		return res;
 	}
+	/**
+	 * Distance based on Manhattan Distance.
+	 * 
+	 * @param x0
+	 * @param y0
+	 * @param x1
+	 * @param y1
+	 * @return distance between two points
+	 */
 	private int getEstDist(int x0, int y0, int x1, int y1) {
 		return Math.abs(x1 - x0) + Math.abs(y1 - y0);
 	}
+	/**
+	 * Distance based on Manhattan Distance.
+	 * 
+	 * @param p1 location of the first point
+	 * @param p2 location of the second point
+	 * @return distance between two points
+	 */
 	private int getEstDist(Point p1, Point p2) {
 		return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
 	}
@@ -299,13 +411,38 @@ public class SnakePlayer {
 		seen[i][j] = true;
 		return 0;
 	}
+	/**
+	 * Check if the point is valid in the 2d array
+	 * 
+	 * @param map
+	 * @param i
+	 * @param j
+	 * @return if the point is valid
+	 */
 	private boolean pntInRange(int [][] map, int i, int j) {
 		return i >= 0 && i < m_height && j >= 0 && j < m_width;
 	}
+	/**
+	 * Check if the point can be considered as a possible corner for path
+	 * 
+	 * @param map
+	 * @param seen
+	 * @param i
+	 * @param j
+	 * @param gameBoard
+	 * @param enCollision
+	 * @return if the point can be considered as a possible corner for path
+	 */
 	private boolean validP(int [][] map, boolean [][] seen, int i, int j, byte [][] gameBoard, boolean enCollision) {
 		return pntInRange(map, i, j) && (enCollision || (gameBoard[i][j] & SNAKE) == 0) && !seen[i][j];
 	}
 	
+	/**
+	 * Clear the path marked on the game board.
+	 * 
+	 * @param overlapOnly choose to clear only the path overlap 
+	 *        with snake or all the path
+	 */
 	private void clearPath(boolean overlapOnly) {
         for (int i = 0; i < m_height; ++ i) {
         	for (int j = 0; j < m_width; ++ j) {

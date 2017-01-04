@@ -1,5 +1,9 @@
 package SnakeGame;
 
+/**
+ * @author philip
+ *
+ */
 public final class Constants {
 	// Board size and configure
 	public static final int B_WIDTH = 8;

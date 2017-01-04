@@ -5,7 +5,13 @@ import java.util.List;
 
 import SnakeGame.Constants.Direction;
 
+/**
+ * @author philip
+ *
+ */
 public final class Utils {
+	// Methods for debug only.
+	
 	public static void printMap (int [][] map) {
 		System.out.println(" ");
 		for (int i = 0; i < map.length; ++ i) {
