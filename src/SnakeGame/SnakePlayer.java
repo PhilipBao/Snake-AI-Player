@@ -217,7 +217,7 @@ public class SnakePlayer {
 		if (from.x == to.x && from.y == to.y) {
 			m_pathCnter ++;
 		} else {
-			List<Point> adjPnts = getAdjPnts(from, to, seen, map, gb, enCollision);
+			List<Point> adjPnts = getAdjPnts(origin, from, to, seen, map, gb, enCollision);
 			if (adjPnts.isEmpty()) return;
 			for (Point p : adjPnts) {
 				map[p.y][p.x] = Math.min(map[p.y][p.x], getEstDist(p.x, p.y, to.x, to.y));
@@ -268,7 +268,7 @@ public class SnakePlayer {
 		return res_path;
 	}
 
-	private List<Point> getAdjPnts(Point p, Point to, boolean [][] seen, int [][] map, byte [][] gb, boolean enCollision) {
+	private List<Point> getAdjPnts(Point origin, Point p, Point to, boolean [][] seen, int [][] map, byte [][] gb, boolean enCollision) {
 		List<Point> res = new ArrayList<Point>();
 		if (validP(map, seen, p.y + 1, p.x, gb, enCollision)) 
 			res.add(new Point(p.x, p.y + 1));
@@ -278,7 +278,7 @@ public class SnakePlayer {
 			res.add(new Point(p.x + 1, p.y));
 		if (validP(map, seen, p.y, p.x - 1, gb, enCollision)) 
 			res.add(new Point(p.x - 1, p.y));
-		if (getEstDist(p, to) <= 1)
+		if ((p.x != origin.x || p.y != origin.y) && getEstDist(p, to) <= 1)
 			res.add(new Point(to));
 		return res;
 	}
