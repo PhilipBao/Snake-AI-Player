@@ -58,6 +58,7 @@ public class SnakeBoard extends JPanel implements ActionListener {
     	m_gameBoard[B_HEIGHT/2][B_WIDTH/2] |= SNAKE;
     	m_gameBoard[B_HEIGHT/2][B_WIDTH/2 - 1] |= SNAKE;
     	m_gameBoard[B_HEIGHT/2][B_WIDTH/2 - 2] |= SNAKE;
+    	
     	m_body.offer(new Point(B_WIDTH/2 - 2, B_HEIGHT/2));
     	m_body.offer(new Point(B_WIDTH/2 - 1, B_HEIGHT/2));
     	m_body.offer(new Point(B_WIDTH/2, B_HEIGHT/2));
@@ -186,6 +187,8 @@ public class SnakeBoard extends JPanel implements ActionListener {
 	            Direction sugg = m_player.getDirection();
 	            if (sugg != Direction.none) {
 	            	m_currD = sugg;
+	            } else {
+	            	m_paused = true;
 	            }
             }
         }

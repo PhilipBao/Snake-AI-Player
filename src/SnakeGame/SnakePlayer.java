@@ -80,9 +80,11 @@ public class SnakePlayer {
 			m_path = longPath;
 			return;
 		}
-		for (int i = 0; i < 10; ++ i) System.out.println("GAME OVER");
-		Point [][] vecMapTry = findLongestPath(m_head, m_food, m_gameBoard, WITH_COLLISION);
-		m_path = constructPath(m_head, m_food, vecMapTry, m_gameBoard, HIDE_PATH);
+		System.out.println("GAME OVER");
+		
+		//Point [][] vecMapTry = findLongestPath(m_head, m_food, m_gameBoard, WITH_COLLISION);
+		//m_path = constructPath(m_head, m_food, vecMapTry, m_gameBoard, HIDE_PATH);
+		m_path.clear();
 	}
 	
 	private void moveAlongPath(Queue<Point> snake, Point food, byte[][] gameBoard, Stack <Direction> path, Point foodLoc) {
